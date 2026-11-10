@@ -71,8 +71,7 @@ func (p *HTTPChatProvider) Complete(ctx context.Context, body []byte, w http.Res
 		return errors.New("upstream redirect rejected")
 	}
 	contentType := resp.Header.Get("Content-Type")
-	if contentType != "application/json" && !strings.HasPrefix(contentType, "application/json;") &&
-		contentType != "text/event-stream" && !strings.HasPrefix(contentType, "text/event-stream;") {
+	if contentType != "application/json" && !strings.HasPrefix(contentType, "application/json;") && contentType != "text/event-stream" && !strings.HasPrefix(contentType, "text/event-stream;") {
 		return errors.New("unexpected upstream content type")
 	}
 	w.Header().Set("Content-Type", contentType)
