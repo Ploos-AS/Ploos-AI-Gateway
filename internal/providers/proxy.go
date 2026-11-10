@@ -40,7 +40,7 @@ func NewHTTPChatProvider(endpoint, apiKey string) (*HTTPChatProvider, error) {
 	}
 	return &HTTPChatProvider{
 		Endpoint: endpoint,
-		APIKey: apiKey,
+		APIKey:   apiKey,
 		Client: &http.Client{
 			Timeout: 120 * time.Second,
 			CheckRedirect: func(_ *http.Request, _ []*http.Request) error {
