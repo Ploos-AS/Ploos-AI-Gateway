@@ -4,8 +4,11 @@ package api
 import (
 	"crypto/subtle"
 	"encoding/json"
+	"io"
 	"net/http"
 	"strings"
+
+	"github.com/Ploos-AS/Ploos-AI-Gateway/internal/providers"
 )
 
 // NewHandler returns the gateway HTTP handler. A blank key disables model routes.
@@ -14,6 +17,11 @@ func NewHandler(apiKey ...string) http.Handler {
 	if len(apiKey) > 0 {
 		key = apiKey[0]
 	}
+	return NewHandlerWithProvider(key, nil)
+}
+
+// NewHandlerWithProvider wires an authenticated chat endpoint to a provider.
+func NewHandlerWithProvider(key string, provider providers.ChatProvider) http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -35,8 +43,32 @@ func NewHandler(apiKey ...string) http.Handler {
 			writeError(w, http.StatusUnauthorized, "invalid_api_key", "Invalid API key")
 			return
 		}
-		// Never accept or forward requests before a provider adapter is configured.
-		writeError(w, http.StatusNotImplemented, "provider_unavailable", "No model provider is configured")
+		if provider == nil {
+			writeError(w, http.StatusNotImplemented, "provider_unavailable", "No model provider is configured")
+			return
+		}
+		if r.ContentLength > providers.MaxRequestBytes {
+			writeError(w, http.StatusRequestEntityTooLarge, "request_too_large", "Request body exceeds limit")
+			return
+		}
+		body, err := io.ReadAll(http.MaxBytesReader(w, r.Body, providers.MaxRequestBytes))
+		if err != nil {
+			writeError(w, http.StatusRequestEntityTooLarge, "request_too_large", "Request body exceeds limit")
+			return
+		}
+		var payload struct {
+			Model    string          `json:"model"`
+			Messages json.RawMessage `json:"messages"`
+		}
+		if !json.Valid(body) || json.Unmarshal(body, &payload) != nil || payload.Model == "" || len(payload.Messages) == 0 || payload.Messages[0] != '[' {
+			writeError(w, http.StatusBadRequest, "invalid_request", "Expected JSON with model and messages array")
+			return
+		}
+		if err := provider.Complete(r.Context(), body, w); err != nil {
+			// Response may already have started during streaming; do not write a second JSON response.
+			// A real network failure before headers is handled by the provider's caller in a later revision.
+			return
+		}
 	})
 	return mux
 }
