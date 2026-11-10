@@ -1,0 +1,8 @@
+.env
+.env.*
+!.env.example
+*.db
+*.db-*
+/gateway
+/dist/
+/coverage.out
