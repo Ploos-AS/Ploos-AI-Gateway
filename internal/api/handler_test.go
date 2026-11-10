@@ -17,7 +17,9 @@ func TestHealthEndpoint(t *testing.T) {
 	if got := res.Header().Get("Content-Type"); got != "application/json" {
 		t.Fatalf("content-type = %q", got)
 	}
-	var body struct{ Status string `json:"status"` }
+	var body struct {
+		Status string `json:"status"`
+	}
 	if err := json.Unmarshal(res.Body.Bytes(), &body); err != nil {
 		t.Fatal(err)
 	}
