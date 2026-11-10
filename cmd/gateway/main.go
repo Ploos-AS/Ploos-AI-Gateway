@@ -22,7 +22,7 @@ func main() {
 
 	server := &http.Server{
 		Addr:              addr,
-		Handler:           api.NewHandler(),
+		Handler:           api.NewHandler(os.Getenv("PLOOS_GATEWAY_API_KEY")),
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 
