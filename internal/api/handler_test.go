@@ -29,7 +29,7 @@ func TestHealthEndpoint(t *testing.T) {
 }
 
 func TestUnknownRoute(t *testing.T) {
-	req := httptest.NewRequest(http.MethodPost, "/v1/chat/completions", nil)
+	req := httptest.NewRequest(http.MethodPost, "/v1/unknown", nil)
 	res := httptest.NewRecorder()
 	NewHandler().ServeHTTP(res, req)
 	if res.Code != http.StatusNotFound {
