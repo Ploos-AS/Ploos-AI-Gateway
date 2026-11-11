@@ -12,6 +12,7 @@ import (
 
 	"github.com/Ploos-AS/Ploos-AI-Gateway/internal/api"
 	"github.com/Ploos-AS/Ploos-AI-Gateway/internal/providers"
+	"github.com/Ploos-AS/Ploos-AI-Gateway/internal/routing"
 )
 
 func main() {
@@ -21,28 +22,42 @@ func main() {
 		addr = "127.0.0.1:8080"
 	}
 
-	var provider providers.ChatProvider
-	switch os.Getenv("PLOOS_GATEWAY_PROVIDER") {
-	case "":
-		// No model endpoint configured.
-	case "openrouter":
-		key := os.Getenv("OPENROUTER_API_KEY")
-		if key == "" {
-			logger.Error("OPENROUTER_API_KEY required for openrouter provider")
+	var handler http.Handler
+	if path := os.Getenv("PLOOS_GATEWAY_REGISTRY"); path != "" {
+		cfg, err := routing.Load(path)
+		if err != nil {
+			logger.Error("cannot load model registry", "error", err)
 			os.Exit(1)
 		}
-		provider, _ = providers.NewHTTPChatProvider("https://openrouter.ai/api/v1/chat/completions", key)
-	case "ollama":
-		// Default loopback Ollama endpoint; configure network access outside this process.
-		provider, _ = providers.NewHTTPChatProvider("http://127.0.0.1:11434/v1/chat/completions", "")
-	default:
-		logger.Error("unknown provider")
-		os.Exit(1)
+		registry, err := routing.New(cfg)
+		if err != nil {
+			logger.Error("invalid model registry", "error", err)
+			os.Exit(1)
+		}
+		handler = api.NewRoutedHandler(os.Getenv("PLOOS_GATEWAY_API_KEY"), registry)
+	} else {
+		var provider providers.ChatProvider
+		switch os.Getenv("PLOOS_GATEWAY_PROVIDER") {
+		case "":
+		case "openrouter":
+			key := os.Getenv("OPENROUTER_API_KEY")
+			if key == "" {
+				logger.Error("OPENROUTER_API_KEY required for openrouter provider")
+				os.Exit(1)
+			}
+			provider, _ = providers.NewHTTPChatProvider("https://openrouter.ai/api/v1/chat/completions", key)
+		case "ollama":
+			provider, _ = providers.NewHTTPChatProvider("http://127.0.0.1:11434/v1/chat/completions", "")
+		default:
+			logger.Error("unknown provider")
+			os.Exit(1)
+		}
+		handler = api.NewHandlerWithProvider(os.Getenv("PLOOS_GATEWAY_API_KEY"), provider)
 	}
 
 	server := &http.Server{
 		Addr:              addr,
-		Handler:           api.NewHandlerWithProvider(os.Getenv("PLOOS_GATEWAY_API_KEY"), provider),
+		Handler:           handler,
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 
