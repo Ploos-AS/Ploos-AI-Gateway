@@ -5,7 +5,7 @@ import "testing"
 func TestRegistryRejectsRemoteMasqueradingAsLocal(t *testing.T) {
 	cfg := Config{
 		Providers: []ProviderConfig{{ID: "remote", Kind: "openrouter", Endpoint: "https://openrouter.ai/api/v1/chat/completions", KeyEnv: "OPENROUTER_API_KEY"}},
-		Models: []Model{{ID: "local/private", Provider: "remote", UpstreamID: "example", Location: "local", Modalities: []string{"text"}}},
+		Models:    []Model{{ID: "local/private", Provider: "remote", UpstreamID: "example", Location: "local", Modalities: []string{"text"}}},
 	}
 	t.Setenv("OPENROUTER_API_KEY", "fake-test-key")
 	if _, err := New(cfg); err == nil {
@@ -16,7 +16,7 @@ func TestRegistryRejectsRemoteMasqueradingAsLocal(t *testing.T) {
 func TestRegistryLocalAndUnknownModel(t *testing.T) {
 	cfg := Config{
 		Providers: []ProviderConfig{{ID: "ollama", Kind: "ollama", Endpoint: "http://127.0.0.1:11434/v1/chat/completions"}},
-		Models: []Model{{ID: "local/llama", Provider: "ollama", UpstreamID: "llama3.2", Location: "local", Modalities: []string{"text"}}},
+		Models:    []Model{{ID: "local/llama", Provider: "ollama", UpstreamID: "llama3.2", Location: "local", Modalities: []string{"text"}}},
 	}
 	reg, err := New(cfg)
 	if err != nil {
