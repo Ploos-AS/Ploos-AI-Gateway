@@ -3,10 +3,10 @@ package providers
 
 import (
 	"bytes"
+	"encoding/json"
 	"context"
 	"errors"
-	"fmt"
-	"io"
+		"io"
 	"net/http"
 	"net/url"
 	"strings"
@@ -64,14 +64,17 @@ func (p *HTTPChatProvider) Complete(ctx context.Context, body []byte, w http.Res
 	}
 	resp, err := p.Client.Do(req)
 	if err != nil {
-		return fmt.Errorf("upstream request: %w", err)
+		writeUpstreamError(w, err)
+		return err
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode >= 300 && resp.StatusCode < 400 {
+		writeUpstreamError(w, errors.New("upstream redirect rejected"))
 		return errors.New("upstream redirect rejected")
 	}
 	contentType := resp.Header.Get("Content-Type")
 	if contentType != "application/json" && !strings.HasPrefix(contentType, "application/json;") && contentType != "text/event-stream" && !strings.HasPrefix(contentType, "text/event-stream;") {
+		writeUpstreamError(w, errors.New("unexpected upstream content type"))
 		return errors.New("unexpected upstream content type")
 	}
 	w.Header().Set("Content-Type", contentType)
@@ -97,3 +100,27 @@ func (p *HTTPChatProvider) Complete(ctx context.Context, body []byte, w http.Res
 		}
 	}
 }
+
+ // writeUpstreamError emits a safe error before any upstream headers or body are forwarded.
+ // It deliberately never includes provider URLs, credentials or response bodies.
+ func writeUpstreamError(w http.ResponseWriter, err error) {
+  status := http.StatusBadGateway
+  code := "upstream_unavailable"
+  if errors.Is(err, context.DeadlineExceeded) {
+   status = http.StatusGatewayTimeout
+   code = "upstream_timeout"
+  } else {
+   var netErr interface{ Timeout() bool }
+   if errors.As(err, &netErr) && netErr.Timeout() {
+    status = http.StatusGatewayTimeout
+    code = "upstream_timeout"
+   }
+  }
+  w.Header().Set("Content-Type", "application/json")
+  w.Header().Set("Cache-Control", "no-store")
+  w.Header().Set("X-Content-Type-Options", "nosniff")
+  w.WriteHeader(status)
+  _ = json.NewEncoder(w).Encode(map[string]interface{}{
+   "error": map[string]string{"message": "Model provider is unavailable", "type": "gateway_error", "code": code},
+  })
+ }

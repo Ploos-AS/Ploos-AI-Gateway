@@ -1,7 +1,6 @@
 package api
 
 import (
-	"bytes"
 	"crypto/subtle"
 	"encoding/json"
 	"io"
@@ -42,7 +41,7 @@ func NewRoutedHandler(key string, registry *routing.Registry) http.Handler {
 			Model    string          `json:"model"`
 			Messages json.RawMessage `json:"messages"`
 		}
-		if json.Unmarshal(body, &payload) != nil || payload.Model == "" || len(payload.Messages) == 0 || payload.Messages[0] != '[' {
+		if json.Unmarshal(body, &payload) != nil || payload.Model == "" || !validMessages(payload.Messages) {
 			writeError(w, http.StatusBadRequest, "invalid_request", "Expected model and messages array")
 			return
 		}
@@ -63,11 +62,29 @@ func NewRoutedHandler(key string, registry *routing.Registry) http.Handler {
 			writeError(w, http.StatusBadRequest, "invalid_request", "Could not encode request")
 			return
 		}
-		// Buffer headers until the provider responds; do not send a second response after streaming starts.
-		_ = bytes.NewReader(forwarded)
 		if err := route.Provider.Complete(r.Context(), forwarded, w); err != nil {
 			return
 		}
 	})
 	return mux
 }
+
+ // validMessages requires a non-empty JSON array with object entries.
+ // Detailed per-provider message schemas remain a separate compatibility concern.
+ func validMessages(raw json.RawMessage) bool {
+  var messages []json.RawMessage
+  if json.Unmarshal(raw, &messages) != nil || len(messages) == 0 {
+   return false
+  }
+  for _, item := range messages {
+   var obj map[string]json.RawMessage
+   if json.Unmarshal(item, &obj) != nil || obj == nil {
+    return false
+   }
+   var role string
+   if json.Unmarshal(obj["role"], &role) != nil || role == "" {
+    return false
+   }
+  }
+  return true
+ }
