@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net/http"
 	"os"
 	"strings"
 
@@ -74,17 +75,22 @@ func New(cfg Config) (*Registry, error) {
 		if p.ID == "" || instances[p.ID] != nil {
 			return nil, fmt.Errorf("empty or duplicate provider id %q", p.ID)
 		}
-		if p.Kind != "openrouter" && p.Kind != "ollama" {
+		if p.Kind != "openrouter" && p.Kind != "ollama" && p.Kind != "selfhosted" {
 			return nil, fmt.Errorf("unsupported provider kind %q", p.Kind)
 		}
 		if p.Kind == "openrouter" && (p.Endpoint != "https://openrouter.ai/api/v1/chat/completions" || p.KeyEnv != "OPENROUTER_API_KEY") {
 			return nil, fmt.Errorf("openrouter must use its fixed endpoint and OPENROUTER_API_KEY")
 		}
-		if p.Kind == "ollama" && p.KeyEnv != "" {
+		if (p.Kind == "ollama" || p.Kind == "selfhosted") && p.KeyEnv != "" {
 			return nil, fmt.Errorf("ollama key_env is not supported")
 		}
 		if p.Kind == "ollama" && !strings.HasPrefix(p.Endpoint, "http://127.0.0.1:") && !strings.HasPrefix(p.Endpoint, "http://localhost:") {
 			return nil, fmt.Errorf("ollama requires a loopback HTTP endpoint")
+		}
+		if p.Kind == "selfhosted" {
+			if err := validatePrivateEndpoint(p.Endpoint); err != nil {
+				return nil, fmt.Errorf("selfhosted provider %q: %w", p.ID, err)
+			}
 		}
 		key := ""
 		if p.KeyEnv != "" {
@@ -96,6 +102,9 @@ func New(cfg Config) (*Registry, error) {
 		instance, err := providers.NewHTTPChatProvider(p.Endpoint, key)
 		if err != nil {
 			return nil, fmt.Errorf("provider %q: %w", p.ID, err)
+		}
+		if p.Kind == "selfhosted" {
+			instance.Client.Transport = &http.Transport{Proxy: nil}
 		}
 		instances[p.ID] = instance
 		locations[p.ID] = p.Kind
@@ -112,6 +121,8 @@ func New(cfg Config) (*Registry, error) {
 		expected := "remote"
 		if locations[m.Provider] == "ollama" {
 			expected = "local"
+		} else if locations[m.Provider] == "selfhosted" {
+			expected = "selfhosted"
 		}
 		if m.Location != expected {
 			return nil, fmt.Errorf("model %q location must be %q", m.ID, expected)
