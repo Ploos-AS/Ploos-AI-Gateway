@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/Ploos-AS/Ploos-AI-Gateway/internal/api"
+	"github.com/Ploos-AS/Ploos-AI-Gateway/internal/images"
 	"github.com/Ploos-AS/Ploos-AI-Gateway/internal/providers"
 	"github.com/Ploos-AS/Ploos-AI-Gateway/internal/routing"
 )
@@ -53,6 +54,18 @@ func main() {
 			os.Exit(1)
 		}
 		handler = api.NewHandlerWithProvider(os.Getenv("PLOOS_GATEWAY_API_KEY"), provider)
+	}
+
+	if alias := os.Getenv("PLOOS_IMAGE_MODEL_ALIAS"); alias != "" {
+		model := os.Getenv("PLOOS_IMAGE_UPSTREAM_MODEL")
+		generator, err := images.NewOpenAI(os.Getenv("OPENAI_API_KEY"))
+		if err != nil || model == "" {
+			logger.Error("image generation requires OPENAI_API_KEY and PLOOS_IMAGE_UPSTREAM_MODEL")
+			os.Exit(1)
+		}
+		handler = api.WithImageGeneration(handler, os.Getenv("PLOOS_GATEWAY_API_KEY"), api.ImageRoute{
+			Alias: alias, UpstreamModel: model, Generator: generator,
+		})
 	}
 
 	server := &http.Server{
