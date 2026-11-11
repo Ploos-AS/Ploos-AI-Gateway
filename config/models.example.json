@@ -1,0 +1,31 @@
+{
+  "providers": [
+    {
+      "id": "local-ollama",
+      "kind": "ollama",
+      "endpoint": "http://127.0.0.1:11434/v1/chat/completions"
+    },
+    {
+      "id": "external-openrouter",
+      "kind": "openrouter",
+      "endpoint": "https://openrouter.ai/api/v1/chat/completions",
+      "key_env": "OPENROUTER_API_KEY"
+    }
+  ],
+  "models": [
+    {
+      "id": "local/llama",
+      "provider": "local-ollama",
+      "upstream_model": "llama3.2",
+      "location": "local",
+      "modalities": ["text"]
+    },
+    {
+      "id": "openrouter/example",
+      "provider": "external-openrouter",
+      "upstream_model": "openai/gpt-4o-mini",
+      "location": "remote",
+      "modalities": ["text"]
+    }
+  ]
+}
