@@ -33,10 +33,15 @@ func TestUpstreamConnectionFailureIsSafeJSON(t *testing.T) {
 }
 
 func TestUpstreamTimeout(t *testing.T) {
+	release := make(chan struct{})
 	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		<-r.Context().Done()
+		select {
+		case <-release:
+		case <-r.Context().Done():
+		}
 	}))
 	defer upstream.Close()
+	defer close(release)
 	p, err := NewHTTPChatProvider(upstream.URL+"/v1/chat/completions", "")
 	if err != nil {
 		t.Fatal(err)
