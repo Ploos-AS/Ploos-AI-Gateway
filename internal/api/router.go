@@ -69,22 +69,22 @@ func NewRoutedHandler(key string, registry *routing.Registry) http.Handler {
 	return mux
 }
 
- // validMessages requires a non-empty JSON array with object entries.
- // Detailed per-provider message schemas remain a separate compatibility concern.
- func validMessages(raw json.RawMessage) bool {
-  var messages []json.RawMessage
-  if json.Unmarshal(raw, &messages) != nil || len(messages) == 0 {
-   return false
-  }
-  for _, item := range messages {
-   var obj map[string]json.RawMessage
-   if json.Unmarshal(item, &obj) != nil || obj == nil {
-    return false
-   }
-   var role string
-   if json.Unmarshal(obj["role"], &role) != nil || role == "" {
-    return false
-   }
-  }
-  return true
- }
+// validMessages requires a non-empty JSON array with object entries.
+// Detailed per-provider message schemas remain a separate compatibility concern.
+func validMessages(raw json.RawMessage) bool {
+	var messages []json.RawMessage
+	if json.Unmarshal(raw, &messages) != nil || len(messages) == 0 {
+		return false
+	}
+	for _, item := range messages {
+		var obj map[string]json.RawMessage
+		if json.Unmarshal(item, &obj) != nil || obj == nil {
+			return false
+		}
+		var role string
+		if json.Unmarshal(obj["role"], &role) != nil || role == "" {
+			return false
+		}
+	}
+	return true
+}
