@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"net/http"
 	"os"
 	"strings"
 
@@ -99,12 +98,15 @@ func New(cfg Config) (*Registry, error) {
 				return nil, fmt.Errorf("provider %q missing credential environment variable", p.ID)
 			}
 		}
-		instance, err := providers.NewHTTPChatProvider(p.Endpoint, key)
+		var instance *providers.HTTPChatProvider
+		var err error
+		if p.Kind == "selfhosted" {
+			instance, err = providers.NewPrivateHTTPChatProvider(p.Endpoint)
+		} else {
+			instance, err = providers.NewHTTPChatProvider(p.Endpoint, key)
+		}
 		if err != nil {
 			return nil, fmt.Errorf("provider %q: %w", p.ID, err)
-		}
-		if p.Kind == "selfhosted" {
-			instance.Client.Transport = &http.Transport{Proxy: nil}
 		}
 		instances[p.ID] = instance
 		locations[p.ID] = p.Kind
