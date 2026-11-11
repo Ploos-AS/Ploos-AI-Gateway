@@ -73,9 +73,9 @@ func TestPrivateModelEndToEndJSON(t *testing.T) {
 func TestPrivateModelEndToEndSSE(t *testing.T) {
 	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/event-stream")
-		_, _ = io.WriteString(w, "data: first\\n\\n")
+		_, _ = io.WriteString(w, "data: first\n\n")
 		w.(http.Flusher).Flush()
-		_, _ = io.WriteString(w, "data: [DONE]\\n\\n")
+		_, _ = io.WriteString(w, "data: [DONE]\n\n")
 	}))
 	defer upstream.Close()
 	handler := integrationHandler(t, upstream.URL+"/v1/chat/completions")
@@ -112,6 +112,9 @@ func TestPrivateModelCancelStopsUpstream(t *testing.T) {
 	finished := make(chan struct{})
 	release := make(chan struct{})
 	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/event-stream")
+		w.WriteHeader(http.StatusOK)
+		w.(http.Flusher).Flush()
 		close(started)
 		select {
 		case <-r.Context().Done():
