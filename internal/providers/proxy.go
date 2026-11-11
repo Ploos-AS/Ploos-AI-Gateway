@@ -8,6 +8,7 @@ import (
 	"errors"
 	"io"
 	"net/http"
+	"net/netip"
 	"net/url"
 	"strings"
 	"time"
@@ -28,21 +29,40 @@ type HTTPChatProvider struct {
 }
 
 func NewHTTPChatProvider(endpoint, apiKey string) (*HTTPChatProvider, error) {
+	return newHTTPChatProvider(endpoint, apiKey, false)
+}
+
+// NewPrivateHTTPChatProvider connects to an explicitly configured private-IP model server.
+func NewPrivateHTTPChatProvider(endpoint string) (*HTTPChatProvider, error) {
+	return newHTTPChatProvider(endpoint, "", true)
+}
+
+func newHTTPChatProvider(endpoint, apiKey string, allowPrivate bool) (*HTTPChatProvider, error) {
 	u, err := url.Parse(endpoint)
 	if err != nil || u.Host == "" || u.User != nil || u.RawQuery != "" || u.Fragment != "" {
 		return nil, errors.New("invalid provider endpoint")
 	}
-	if u.Scheme != "https" && !(u.Scheme == "http" && (u.Hostname() == "127.0.0.1" || u.Hostname() == "localhost")) {
+	privateHTTP := false
+	if allowPrivate {
+		ip, err := netip.ParseAddr(u.Hostname())
+		privateHTTP = err == nil && (ip.IsPrivate() || ip.IsLoopback()) && !ip.Is4In6() && ip.Zone() == ""
+	}
+	if u.Scheme != "https" && !(u.Scheme == "http" && (u.Hostname() == "127.0.0.1" || u.Hostname() == "localhost" || privateHTTP)) {
 		return nil, errors.New("provider endpoint must use HTTPS or local loopback HTTP")
 	}
 	if !strings.HasSuffix(u.Path, "/chat/completions") {
 		return nil, errors.New("provider endpoint must be a chat completions URL")
 	}
+	transport := http.DefaultTransport.(*http.Transport).Clone()
+	if allowPrivate {
+		transport.Proxy = nil
+	}
 	return &HTTPChatProvider{
 		Endpoint: endpoint,
 		APIKey:   apiKey,
 		Client: &http.Client{
-			Timeout: 120 * time.Second,
+			Timeout:   120 * time.Second,
+			Transport: transport,
 			CheckRedirect: func(_ *http.Request, _ []*http.Request) error {
 				return http.ErrUseLastResponse
 			},
