@@ -33,14 +33,14 @@ type ProviderConfig struct {
 
 // Config contains a provider and model registry.
 type Config struct {
-	Providers      []ProviderConfig        `json:"providers"`
-	Models         []Model                 `json:"models"`
-	ImageProviders []images.ProviderConfig `json:"image_providers,omitempty"`
-	ImageModels    []images.ModelConfig    `json:"image_models,omitempty"`
-	AudioProviders []audio.ProviderConfig  `json:"audio_providers,omitempty"`
-	AudioModels    []audio.ModelConfig     `json:"audio_models,omitempty"`
-	TranscriptionProviders []audio.ProviderConfig `json:"transcription_providers,omitempty"`
-	TranscriptionModels []audio.ModelConfig `json:"transcription_models,omitempty"`
+	Providers              []ProviderConfig        `json:"providers"`
+	Models                 []Model                 `json:"models"`
+	ImageProviders         []images.ProviderConfig `json:"image_providers,omitempty"`
+	ImageModels            []images.ModelConfig    `json:"image_models,omitempty"`
+	AudioProviders         []audio.ProviderConfig  `json:"audio_providers,omitempty"`
+	AudioModels            []audio.ModelConfig     `json:"audio_models,omitempty"`
+	TranscriptionProviders []audio.ProviderConfig  `json:"transcription_providers,omitempty"`
+	TranscriptionModels    []audio.ModelConfig     `json:"transcription_models,omitempty"`
 }
 
 // Route is a resolved, fixed upstream destination.
