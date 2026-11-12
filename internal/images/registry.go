@@ -8,8 +8,6 @@ import (
 	"net/url"
 	"os"
 	"strings"
-	"time"
-	"net/http"
 )
 
 // ProviderConfig declares an image backend independent of chat providers.
@@ -52,7 +50,7 @@ func NewRegistry(providers []ProviderConfig, models []ModelConfig) (*Registry, e
 		case "comfyui":
 			if p.KeyEnv != "" { return nil, errors.New("comfyui does not support key_env") }
 			if err = validateComfyEndpoint(p.Endpoint); err == nil {
-				g = &Generator{Endpoint: p.Endpoint, Client: &http.Client{Timeout: 120*time.Second, Transport: privateTransport(), CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}}
+				return nil, errors.New("comfyui requires a workflow adapter; direct OpenAI-style requests are not supported")
 			}
 		default: return nil, fmt.Errorf("unsupported image provider kind")
 		}
@@ -89,10 +87,4 @@ func validateComfyEndpoint(endpoint string) error {
 	if _, err = net.LookupPort("tcp",port); err != nil { return errors.New("invalid comfyui port") }
 	if strings.Contains(endpoint,"@") { return errors.New("userinfo forbidden") }
 	return nil
-}
-
-func privateTransport() *http.Transport {
-	t := http.DefaultTransport.(*http.Transport).Clone()
-	t.Proxy = nil
-	return t
 }
