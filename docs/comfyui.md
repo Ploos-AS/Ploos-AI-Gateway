@@ -13,3 +13,7 @@ Register a corresponding `image_models` entry with `location: "selfhosted"` and 
 The adapter queues a workflow, polls history and retrieves one output image, returning OpenAI-style base64 JSON. Request cancellation stops polling. No remote fallback is configured. The ComfyUI API must be reachable on a trusted private network only.
 
 **Limitations:** This is an initial synchronous adapter with a 120-second HTTP timeout per request; the overall generation duration follows the inbound request context. The workflow must already be valid for the installed ComfyUI model. No workflow upload, custom arbitrary graph or client-supplied URLs are allowed. Production deployment requires resource quotas, concurrency limits and deeper security review.
+
+## Operational safeguards (PR #13)
+
+ComfyUI jobs have a default overall deadline of two minutes and a default maximum of one concurrent generation per configured provider. These are in-process limits; multiple gateway replicas need a shared queue or external concurrency control. Failed history entries are detected, and unfinished queued jobs receive a best-effort `POST /queue` deletion on completion or cancellation. Queue cleanup does not guarantee interruption of a job already running on the GPU. Timeout and capacity behavior have dedicated tests.
