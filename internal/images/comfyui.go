@@ -83,7 +83,12 @@ func (g *ComfyGenerator) Generate(ctx context.Context, body []byte) (int, []byte
 		return 0, nil, errors.New("invalid comfyui job")
 	}
 	base := strings.TrimSuffix(g.Endpoint, "/prompt")
-	defer g.deleteQueuedJob(base, job.PromptID)
+	completed := false
+	defer func() {
+		if !completed {
+			g.deleteQueuedJob(base, job.PromptID)
+		}
+	}()
 	ticker := time.NewTicker(500 * time.Millisecond)
 	defer ticker.Stop()
 	for {
@@ -136,6 +141,7 @@ func (g *ComfyGenerator) Generate(ctx context.Context, body []byte) (int, []byte
 					if int64(len(response)) > MaxResponseBytes {
 						return 0, nil, errors.New("image too large")
 					}
+					completed = true
 					return http.StatusOK, response, nil
 				}
 			}
