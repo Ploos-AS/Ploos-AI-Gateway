@@ -30,7 +30,7 @@ type ModelConfig struct {
 // Route is a validated fixed destination.
 type Route struct {
 	UpstreamModel string
-	Generator *Generator
+	Generator     *Generator
 }
 
 // Registry never falls back to another provider.
@@ -81,11 +81,13 @@ func NewRegistry(providers []ProviderConfig, models []ModelConfig) (*Registry, e
 			return nil, errors.New("unknown image provider")
 		}
 		expected := "remote"
-		if kinds[m.Provider] == "comfyui" { expected = "selfhosted" }
+		if kinds[m.Provider] == "comfyui" {
+			expected = "selfhosted"
+		}
 		if m.Location != expected || len(m.Operations) != 1 || m.Operations[0] != "images.generate" {
 			return nil, errors.New("image model must declare images.generate and correct location")
 		}
-		reg.routes[m.ID] = Route{UpstreamModel:m.UpstreamID, Generator:g}
+		reg.routes[m.ID] = Route{UpstreamModel: m.UpstreamID, Generator: g}
 	}
 	return reg, nil
 }
