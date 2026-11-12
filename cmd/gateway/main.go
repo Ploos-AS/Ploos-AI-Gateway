@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/Ploos-AS/Ploos-AI-Gateway/internal/api"
+	"github.com/Ploos-AS/Ploos-AI-Gateway/internal/audio"
 	"github.com/Ploos-AS/Ploos-AI-Gateway/internal/images"
 	"github.com/Ploos-AS/Ploos-AI-Gateway/internal/providers"
 	"github.com/Ploos-AS/Ploos-AI-Gateway/internal/routing"
@@ -36,6 +37,14 @@ func main() {
 			os.Exit(1)
 		}
 		handler = api.NewRoutedHandler(os.Getenv("PLOOS_GATEWAY_API_KEY"), registry)
+		if len(cfg.AudioProviders) > 0 || len(cfg.AudioModels) > 0 {
+			audioRegistry, err := audio.NewRegistry(cfg.AudioProviders, cfg.AudioModels)
+			if err != nil {
+				logger.Error("invalid audio registry", "error", err)
+				os.Exit(1)
+			}
+			handler = api.WithSpeech(handler, os.Getenv("PLOOS_GATEWAY_API_KEY"), audioRegistry)
+		}
 		if len(cfg.ImageProviders) > 0 || len(cfg.ImageModels) > 0 {
 			imageRegistry, err := images.NewRegistry(cfg.ImageProviders, cfg.ImageModels)
 			if err != nil {
