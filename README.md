@@ -2,7 +2,7 @@
 
 A lightweight, self-hostable, provider-neutral AI API gateway built in Go.
 
-> **Status:** Early development (M1 API/auth scaffold). No model-provider integration yet. Not production-ready.
+> **Status:** Active development. Authenticated chat routing and initial image generation are implemented. Not yet production-ready.
 
 ## Principles
 
@@ -13,14 +13,36 @@ A lightweight, self-hostable, provider-neutral AI API gateway built in Go.
 - **Safe defaults:** listen on loopback by default; model route requires an API key.
 - **Portable:** separate core logic from infrastructure and managed hosting.
 
+## Current capabilities (through PR #10)
+
+- Authenticated OpenAI-compatible `POST /v1/chat/completions` with SSE streaming.
+- Explicit JSON model aliases for OpenRouter, Ollama and private-IP self-hosted chat servers.
+- Safe upstream error handling, timeouts, request limits and integration tests.
+- Multimodal operation descriptors for chat, image, audio and video (metadata, not live endpoints).
+- Authenticated `POST /v1/images/generations` using a configured OpenAI image model.
+- Optional `image_providers` and `image_models` in the shared JSON registry.
+- No implicit local-to-remote fallback.
+- **ComfyUI is not yet operational:** its native workflow adapter remains unimplemented; configurations fail closed.
+
 ## Roadmap
 
-| Milestone | Goal |
-|---|---|
-| M0 | Go project, health endpoint, tests, CI, Docker, documentation |
-| M1 | Authenticated OpenAI-compatible chat completions (including SSE streaming), OpenAI and OpenRouter adapters |
-| M2 | SQLite-backed model registry, API-key lifecycle, usage accounting |
-| M3 | Anthropic and Gemini adapters, policy routing, fallback and budget controls |
+| Phase | Status | Scope |
+| --- | --- | --- |
+| PRs #1–#3 | Implemented | Go service, CI, authentication, chat API and initial providers |
+| PRs #4–#7 | Implemented | Validation, private chat routing and integration tests |
+| PR #8 | Implemented | Multimodal capability contracts |
+| PR #9 | Implemented | Initial OpenAI text-to-image API |
+| PR #10 | Implemented | Shared image registry and fail-closed routing |
+| Native ComfyUI | Next | Workflow templates, job polling and safe image retrieval |
+| Image hardening | Planned | More providers, quotas and observability |
+| Audio | Planned | Speech synthesis and transcription |
+| Video | Planned | Async jobs; optional independent Ploos AI Video Connector integration |
+| Operations | Planned | API key lifecycle, usage, budgets, rate limiting |
+| Additional LLMs | Planned | Anthropic/Gemini adapters and explicit routing policies |
+
+Local-only model requests must never silently fall back to remote providers.
+
+See [architecture](docs/architecture.md), [image generation](docs/image-generation.md), [image routing](docs/image-routing.md), and [multimodal contracts](docs/multimodal-architecture.md).
 
 ## Quick start
 
@@ -32,7 +54,7 @@ go run ./cmd/gateway
 curl --fail http://127.0.0.1:8080/healthz
 ```
 
-The chat route is currently a protected placeholder returning 501 after successful authentication; no provider calls are implemented yet. See [M1 API notes](docs/m1-api.md).
+To enable inference, configure `PLOOS_GATEWAY_REGISTRY` and appropriate upstream credentials. See [model routing](docs/model-routing.md) and [providers](docs/providers.md). Without a configured provider or registry, inference is unavailable.
 
 Override the address with `PLOOS_GATEWAY_LISTEN` (for example, `127.0.0.1:9090`).
 

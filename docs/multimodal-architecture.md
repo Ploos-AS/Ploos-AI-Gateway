@@ -1,29 +1,24 @@
-# Multimodal architecture (PR #8)
+# Multimodal operation contracts
 
-This PR defines **capability contracts**, not new live API endpoints. The existing chat gateway continues to serve text chat only.
+PR #8 introduced provider-independent operation descriptors. PRs #9–#10 subsequently added the first live image endpoint and shared image model configuration.
 
-## Operations
-
-| Operation | Inputs | Output | Lifecycle |
+| Operation | Input | Output | Runtime status |
 | --- | --- | --- | --- |
-| `chat.completions` | text | text | optional streaming |
-| `images.generate` | text, optional image | image | synchronous |
-| `audio.speech` | text | audio | optional streaming |
-| `audio.transcriptions` | audio | text | synchronous |
-| `videos.generate` | text, optional image | video | asynchronous job |
+| `chat.completions` | text | text | Implemented |
+| `images.generate` | text | image | Implemented for OpenAI |
+| `audio.speech` | text | audio | Contract only |
+| `audio.transcriptions` | audio | text | Contract only |
+| `videos.generate` | text/image | video | Contract only |
 
-An operation is not synonymous with a modality: speech and transcription both involve audio but require different request and response contracts.
+An operation is not the same as a modality. The catalog does not grant provider support: individual image routes must explicitly declare `images.generate`.
 
-The `internal/capabilities` package defines operations, media descriptors, and explicit per-model capability declarations. Unknown or undeclared operations fail closed. Catalog entries are metadata only and **must not** be interpreted as upstream feature support.
+## Planned work
 
-## Next steps
+- Native ComfyUI workflow adapter, safe templates, job polling and bounded image retrieval.
+- Speech synthesis and transcription with distinct contracts and limits.
+- Asynchronous video job management, optionally integrating the independent Ploos AI Video Connector.
+- Per-operation provider credentials, rate limits, cost controls and privacy policies.
 
-- PR #9: image generation API, typed provider adapter, content limits, error handling and tests.
-- PR #10: speech synthesis and transcription; size and duration limits.
-- PR #11: asynchronous video jobs with status polling, expiry and cancellation. Keep Ploos AI Video Connector independent; optionally integrate through a provider adapter.
-- Provider credentials, rate limits and privacy boundaries must be enforced separately for every operation.
-- Never forward a request to a remote provider when a local-only model was selected.
+Private/local-only requests must never be automatically routed to a remote provider.
 
-## Compatibility
-
-No new runtime routes or JSON registry fields are introduced in this PR. The existing registry's `modalities: ["text"]` remains unchanged. Future PRs should migrate that field deliberately rather than implying that all models automatically support every operation.
+Chat registry entries still use `modalities: ["text"]`; image entries use the separate `image_models` registry section. A future unified capability schema should be migrated deliberately.

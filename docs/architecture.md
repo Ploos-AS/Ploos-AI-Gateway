@@ -1,29 +1,28 @@
-# Architecture (initial)
+# Architecture — current state
 
-Ploos AI Gateway is a standalone, vendor-neutral Go service. It must not require any other Ploos product or cloud platform.
+Ploos AI Gateway is a standalone, MIT-licensed Go service with no mandatory Ploos Cloud dependency.
 
-## M0
+## Implemented through PR #10
 
-- `cmd/gateway`: process lifecycle, configurable bind address, graceful shutdown.
-- `internal/api`: versionable HTTP surface and health check.
-- Container defaults: non-root, read-only filesystem, loopback-only host publishing.
+- `cmd/gateway`: process lifecycle, configurable loopback bind and graceful shutdown.
+- `internal/api`: authenticated OpenAI-compatible chat and image generation endpoints, plus health checks.
+- `internal/providers`: fixed-destination chat adapters for OpenRouter, Ollama and self-hosted OpenAI-compatible model servers.
+- `internal/routing`: strict JSON model registry, explicit location and model aliases; no implicit fallback.
+- `internal/capabilities`: provider-independent multimodal operation descriptors.
+- `internal/images`: fixed OpenAI image generation and image registry; ComfyUI is validation-only, **not functional**.
+- Local mock-upstream integration tests for chat, SSE, cancellation and initial image generation.
 
-## Planned M1
+## Architectural constraints
 
-- Auth middleware that verifies caller keys before any provider request.
-- OpenAI-compatible `POST /v1/chat/completions`, including SSE streaming.
-- Registry of configured model aliases and provider adapters.
-- OpenAI and OpenRouter adapters; credentials loaded from environment or a secret store, never returned in API responses.
-- Explicit per-request timeout and bounded request/response sizes, with streaming-aware limits.
-- SSRF-safe provider endpoint configuration and guarded redirects; no arbitrary user-supplied upstream URLs.
-- Reject unsupported models and do not silently downgrade to another model.
-- Redact bearer tokens and user-provided content from logs.
-- Unit and local fake-upstream integration tests (no real provider keys in CI).
+- Authentication before forwarding; provider credentials stay server-side.
+- No arbitrary client-selected upstream URL.
+- No implicit local/private-to-remote fallback.
+- Bounded requests and responses; generic upstream errors.
+- Explicit operation capability declarations for image routes.
+- Provider independence: no cloud provider required for chat deployments using local models. Image generation currently requires OpenAI.
 
-## Later
+## Next milestones
 
-SQLite usage and metadata, key lifecycle, per-key permissions, budgets, fallback policies, more providers, and optional deployment via Caddy/WireGuard. Provider availability, cost ceilings and regional data-handling claims must be tested against actual upstream behavior.
+Native ComfyUI workflow adapter, image API hardening, audio operations, asynchronous video jobs, usage accounting, quotas, additional provider adapters and observability.
 
-## Explicit non-goals for M0
-
-No provider calls, no model billing, no multi-tenant control plane and no public production endpoint.
+**Not production-ready:** security review, operational controls and broader integration testing remain outstanding.
