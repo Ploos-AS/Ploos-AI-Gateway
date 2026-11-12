@@ -26,6 +26,10 @@ type Connector struct {
 	client   *http.Client
 }
 
+func httpRedirectPolicy(_ *http.Request, _ []*http.Request) error {
+	return http.ErrUseLastResponse
+}
+
 func New(cfg Config) (*Connector, error) {
 	u, err := url.Parse(cfg.Endpoint)
 	if err != nil || u.Scheme != "http" || u.User != nil || u.RawQuery != "" || u.Fragment != "" || u.Path != "/mcp" {
@@ -54,7 +58,7 @@ func New(cfg Config) (*Connector, error) {
 	client := &http.Client{}
 	client.Timeout = 10 * time.Second
 	client.Transport = transport
-	client.CheckRedirect = func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }
+	client.CheckRedirect = httpRedirectPolicy
 	return &Connector{endpoint: cfg.Endpoint, token: token, client: client}, nil
 }
 
