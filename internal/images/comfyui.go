@@ -88,7 +88,7 @@ func (g *ComfyGenerator) Generate(ctx context.Context, body []byte) (int, []byte
 						continue
 					}
 					query := url.Values{"filename": {item.Filename}, "subfolder": {item.Subfolder}, "type": {"output"}}
-					code, data, err := g.request(ctx, http.MethodGet, base + "/view?" + query.Encode(), nil)
+					code, data, err := g.request(ctx, http.MethodGet, base+"/view?"+query.Encode(), nil)
 					if err != nil || code != http.StatusOK || len(data) == 0 {
 						return 0, nil, errors.New("comfyui image retrieval failed")
 					}
