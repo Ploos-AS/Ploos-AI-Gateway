@@ -54,9 +54,7 @@ func New(cfg Config) (*Connector, error) {
 	client := &http.Client{}
 	client.Timeout = 10 * time.Second
 	client.Transport = transport
-	client.CheckRedirect = func(*http.Request, []*http.Request) error {
-		return http.ErrUseLastResponse
-	}
+	client.CheckRedirect = func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }
 	return &Connector{endpoint: cfg.Endpoint, token: token, client: client}, nil
 }
 
