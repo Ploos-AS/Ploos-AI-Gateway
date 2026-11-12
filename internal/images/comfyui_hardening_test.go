@@ -68,9 +68,9 @@ func TestComfyUITimeout(t *testing.T) {
 	}))
 	defer server.Close()
 	g := &ComfyGenerator{
-		Endpoint: server.URL + "/prompt",
-		Client: server.Client(),
-		Workflow: []byte(`{"6":{"inputs":{"text":"old"}}}`),
+		Endpoint:    server.URL + "/prompt",
+		Client:      server.Client(),
+		Workflow:    []byte(`{"6":{"inputs":{"text":"old"}}}`),
 		PromptNode:  "6",
 		MaxDuration: 50 * time.Millisecond,
 	}
