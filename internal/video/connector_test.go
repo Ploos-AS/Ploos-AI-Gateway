@@ -21,7 +21,9 @@ func TestConnectorCapabilities(t *testing.T) {
 	}))
 	defer server.Close()
 	c, err := New(Config{Endpoint: server.URL + "/mcp", TokenEnv: "PLOOS_VIDEO_CONNECTOR_TOKEN"})
-	if err != nil { t.Fatal(err) }
+	if err != nil {
+		t.Fatal(err)
+	}
 	result, err := c.Capabilities(context.Background())
 	if err != nil || !strings.Contains(string(result), "Diagnostic only") {
 		t.Fatalf("unexpected capabilities %s: %v", result, err)
