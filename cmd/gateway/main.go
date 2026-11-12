@@ -15,6 +15,7 @@ import (
 	"github.com/Ploos-AS/Ploos-AI-Gateway/internal/images"
 	"github.com/Ploos-AS/Ploos-AI-Gateway/internal/providers"
 	"github.com/Ploos-AS/Ploos-AI-Gateway/internal/routing"
+	"github.com/Ploos-AS/Ploos-AI-Gateway/internal/video"
 )
 
 func main() {
@@ -37,6 +38,14 @@ func main() {
 			os.Exit(1)
 		}
 		handler = api.NewRoutedHandler(os.Getenv("PLOOS_GATEWAY_API_KEY"), registry)
+		if cfg.VideoConnector != nil {
+			connector, err := video.New(*cfg.VideoConnector)
+			if err != nil {
+				logger.Error("invalid video connector", "error", err)
+				os.Exit(1)
+			}
+			handler = api.WithVideoConnector(handler, os.Getenv("PLOOS_GATEWAY_API_KEY"), connector)
+		}
 		if len(cfg.AudioProviders) > 0 || len(cfg.AudioModels) > 0 {
 			audioRegistry, err := audio.NewRegistry(cfg.AudioProviders, cfg.AudioModels)
 			if err != nil {
