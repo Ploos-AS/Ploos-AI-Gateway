@@ -16,9 +16,9 @@ import (
 
 // ComfyGenerator executes a server-owned workflow with one prompt input.
 type ComfyGenerator struct {
-	Endpoint string
-	Client   *http.Client
-	Workflow json.RawMessage
+	Endpoint   string
+	Client     *http.Client
+	Workflow   json.RawMessage
 	PromptNode string
 }
 
@@ -47,7 +47,9 @@ func (g *ComfyGenerator) Generate(ctx context.Context, body []byte) (int, []byte
 	if err != nil || status != http.StatusOK {
 		return 0, nil, errors.New("comfyui queue failed")
 	}
-	var job struct { PromptID string `json:"prompt_id"` }
+	var job struct {
+		PromptID string `json:"prompt_id"`
+	}
 	if json.Unmarshal(queued, &job) != nil || job.PromptID == "" {
 		return 0, nil, errors.New("invalid comfyui job")
 	}
@@ -67,9 +69,9 @@ func (g *ComfyGenerator) Generate(ctx context.Context, body []byte) (int, []byte
 			var history map[string]struct {
 				Outputs map[string]struct {
 					Images []struct {
-						Filename string `json:"filename"`
+						Filename  string `json:"filename"`
 						Subfolder string `json:"subfolder"`
-						Type string `json:"type"`
+						Type     string `json:"type"`
 					} `json:"images"`
 				} `json:"outputs"`
 			}
@@ -122,7 +124,7 @@ func (g *ComfyGenerator) request(ctx context.Context, method, endpoint string, b
 	if resp.StatusCode >= 300 && resp.StatusCode < 400 {
 		return 0, nil, errors.New("redirect refused")
 	}
-	data, err := io.ReadAll(io.LimitReader(resp.Body, MaxResponseBytes + 1))
+	data, err := io.ReadAll(io.LimitReader(resp.Body, MaxResponseBytes+1))
 	if err != nil || int64(len(data)) > MaxResponseBytes {
 		return 0, nil, fmt.Errorf("comfyui response exceeded limit")
 	}
