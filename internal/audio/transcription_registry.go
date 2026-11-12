@@ -9,7 +9,7 @@ import (
 
 type TranscriptionRoute struct {
 	UpstreamModel string
-	Provider *TranscriptionProvider
+	Provider      *TranscriptionProvider
 }
 
 type TranscriptionRegistry struct {
@@ -78,5 +78,5 @@ func validatePrivateTranscriptionEndpoint(endpoint string) error {
 	if !strings.HasSuffix(endpoint, "/v1/audio/transcriptions") {
 		return errors.New("invalid transcription endpoint path")
 	}
-	return validatePrivateSpeechEndpoint(strings.TrimSuffix(endpoint, "/v1/audio/transcriptions")+"/v1/audio/speech")
+	return validatePrivateSpeechEndpoint(strings.TrimSuffix(endpoint, "/v1/audio/transcriptions") + "/v1/audio/speech")
 }
