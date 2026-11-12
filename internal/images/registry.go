@@ -1,25 +1,25 @@
 package images
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net"
+	"net/http"
 	"net/netip"
 	"net/url"
 	"os"
-	"net/http"
-	"encoding/json"
 	"time"
 )
 
 // ProviderConfig declares an image backend independent of chat providers.
 type ProviderConfig struct {
-	ID       string `json:"id"`
-	Kind     string `json:"kind"`
-	Endpoint string `json:"endpoint"`
-	KeyEnv   string `json:"key_env,omitempty"`
+	ID           string `json:"id"`
+	Kind         string `json:"kind"`
+	Endpoint     string `json:"endpoint"`
+	KeyEnv       string `json:"key_env,omitempty"`
 	WorkflowFile string `json:"workflow_file,omitempty"`
-	PromptNode string `json:"prompt_node,omitempty"`
+	PromptNode   string `json:"prompt_node,omitempty"`
 }
 
 // ModelConfig binds a public image alias to one upstream model.
