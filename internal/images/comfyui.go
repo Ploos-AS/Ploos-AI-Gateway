@@ -11,19 +11,48 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"sync"
 	"time"
 )
 
 // ComfyGenerator executes a server-owned workflow with one prompt input.
 type ComfyGenerator struct {
-	Endpoint   string
-	Client     *http.Client
-	Workflow   json.RawMessage
-	PromptNode string
+	Endpoint      string
+	Client        *http.Client
+	Workflow      json.RawMessage
+	PromptNode    string
+	MaxDuration   time.Duration
+	MaxConcurrent int
+	mu            sync.Mutex
+	active        int
 }
 
 // Generate implements the image generator contract using ComfyUI's queue/history/view APIs.
 func (g *ComfyGenerator) Generate(ctx context.Context, body []byte) (int, []byte, error) {
+	g.mu.Lock()
+	limit := g.MaxConcurrent
+	if limit <= 0 {
+		limit = 1
+	}
+	if g.active >= limit {
+		g.mu.Unlock()
+		return 0, nil, errors.New("comfyui capacity reached")
+	}
+	g.active++
+	g.mu.Unlock()
+	defer func() {
+		g.mu.Lock()
+		g.active--
+		g.mu.Unlock()
+	}()
+	duration := g.MaxDuration
+	if duration <= 0 {
+		duration = 2 * time.Minute
+	}
+	var cancel context.CancelFunc
+	ctx, cancel = context.WithTimeout(ctx, duration)
+	defer cancel()
+
 	var input struct {
 		Prompt string `json:"prompt"`
 	}
@@ -54,6 +83,12 @@ func (g *ComfyGenerator) Generate(ctx context.Context, body []byte) (int, []byte
 		return 0, nil, errors.New("invalid comfyui job")
 	}
 	base := strings.TrimSuffix(g.Endpoint, "/prompt")
+	completed := false
+	defer func() {
+		if !completed {
+			g.deleteQueuedJob(base, job.PromptID)
+		}
+	}()
 	ticker := time.NewTicker(500 * time.Millisecond)
 	defer ticker.Stop()
 	for {
@@ -67,6 +102,9 @@ func (g *ComfyGenerator) Generate(ctx context.Context, body []byte) (int, []byte
 				return 0, nil, errors.New("comfyui history failed")
 			}
 			var history map[string]struct {
+				Status struct {
+					StatusStr string `json:"status_str"`
+				} `json:"status"`
 				Outputs map[string]struct {
 					Images []struct {
 						Filename  string `json:"filename"`
@@ -81,6 +119,9 @@ func (g *ComfyGenerator) Generate(ctx context.Context, body []byte) (int, []byte
 			entry, done := history[job.PromptID]
 			if !done {
 				continue
+			}
+			if entry.Status.StatusStr == "error" {
+				return 0, nil, errors.New("comfyui job failed")
 			}
 			for _, output := range entry.Outputs {
 				for _, item := range output.Images {
@@ -100,6 +141,7 @@ func (g *ComfyGenerator) Generate(ctx context.Context, body []byte) (int, []byte
 					if int64(len(response)) > MaxResponseBytes {
 						return 0, nil, errors.New("image too large")
 					}
+					completed = true
 					return http.StatusOK, response, nil
 				}
 			}
@@ -129,4 +171,11 @@ func (g *ComfyGenerator) request(ctx context.Context, method, endpoint string, b
 		return 0, nil, fmt.Errorf("comfyui response exceeded limit")
 	}
 	return resp.StatusCode, data, nil
+}
+
+func (g *ComfyGenerator) deleteQueuedJob(base, id string) {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	body, _ := json.Marshal(map[string]interface{}{"delete": []string{id}})
+	_, _, _ = g.request(ctx, http.MethodPost, base+"/queue", body)
 }
