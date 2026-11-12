@@ -36,6 +36,17 @@ func main() {
 			os.Exit(1)
 		}
 		handler = api.NewRoutedHandler(os.Getenv("PLOOS_GATEWAY_API_KEY"), registry)
+		if len(cfg.ImageProviders) > 0 || len(cfg.ImageModels) > 0 {
+			imageRegistry, err := images.NewRegistry(cfg.ImageProviders, cfg.ImageModels)
+			if err != nil {
+				logger.Error("invalid image registry", "error", err)
+				os.Exit(1)
+			}
+			handler = api.WithImageRegistry(handler, os.Getenv("PLOOS_GATEWAY_API_KEY"), func(id string) (api.ImageRoute, bool) {
+				route, ok := imageRegistry.Resolve(id)
+				return api.ImageRoute{Alias: id, UpstreamModel: route.UpstreamModel, Generator: route.Generator}, ok
+			})
+		}
 	} else {
 		var provider providers.ChatProvider
 		switch os.Getenv("PLOOS_GATEWAY_PROVIDER") {
@@ -57,6 +68,10 @@ func main() {
 	}
 
 	if alias := os.Getenv("PLOOS_IMAGE_MODEL_ALIAS"); alias != "" {
+		if os.Getenv("PLOOS_GATEWAY_REGISTRY") != "" {
+			logger.Error("legacy image environment routing cannot be combined with image registry")
+			os.Exit(1)
+		}
 		model := os.Getenv("PLOOS_IMAGE_UPSTREAM_MODEL")
 		generator, err := images.NewOpenAI(os.Getenv("OPENAI_API_KEY"))
 		if err != nil || model == "" {
