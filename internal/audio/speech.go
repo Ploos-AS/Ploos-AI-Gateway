@@ -23,12 +23,12 @@ type SpeechProvider struct {
 
 // Synthesize sends a strictly constructed speech request and returns bounded audio.
 func (p *SpeechProvider) Synthesize(ctx context.Context, model, text, voice string) ([]byte, string, error) {
-	payload, err := json.Marshal(map[string]string{
-		"model":           model,
-		"input":           text,
-		"voice":           voice,
-		"response_format": "mp3",
-	})
+	fields := make(map[string]string)
+	fields["model"] = model
+	fields["input"] = text
+	fields["voice"] = voice
+	fields["response_format"] = "mp3"
+	payload, err := json.Marshal(fields)
 	if err != nil {
 		return nil, "", err
 	}
