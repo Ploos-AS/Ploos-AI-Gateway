@@ -42,7 +42,7 @@ type Config struct {
 	AudioModels            []audio.ModelConfig     `json:"audio_models,omitempty"`
 	TranscriptionProviders []audio.ProviderConfig  `json:"transcription_providers,omitempty"`
 	TranscriptionModels    []audio.ModelConfig     `json:"transcription_models,omitempty"`
-	VideoConnector         *video.Config            `json:"video_connector,omitempty"`
+	VideoConnector         *video.Config           `json:"video_connector,omitempty"`
 }
 
 // Route is a resolved, fixed upstream destination.
