@@ -22,8 +22,8 @@ type Config struct {
 
 type Connector struct {
 	endpoint string
-	token string
-	client *http.Client
+	token    string
+	client   *http.Client
 }
 
 func New(cfg Config) (*Connector, error) {
@@ -52,7 +52,7 @@ func New(cfg Config) (*Connector, error) {
 	transport := http.DefaultTransport.(*http.Transport).Clone()
 	transport.Proxy = nil
 	return &Connector{endpoint: cfg.Endpoint, token: token, client: &http.Client{
-		Timeout: 10 * time.Second,
+		Timeout:   10 * time.Second,
 		Transport: transport,
 		CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse },
 	}}, nil
@@ -63,23 +63,29 @@ func New(cfg Config) (*Connector, error) {
 func (c *Connector) Capabilities(ctx context.Context) (json.RawMessage, error) {
 	payload := []byte(`{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"video_capabilities","arguments":{}}}`)
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.endpoint, bytes.NewReader(payload))
-	if err != nil { return nil, err }
+	if err != nil {
+		return nil, err
+	}
 	req.Header.Set("Authorization", "Bearer "+c.token)
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Accept", "application/json, text/event-stream")
 	req.Header.Set("MCP-Protocol-Version", "2025-03-26")
 	resp, err := c.client.Do(req)
-	if err != nil { return nil, errors.New("video connector unavailable") }
+	if err != nil {
+		return nil, errors.New("video connector unavailable")
+	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK || !strings.HasPrefix(resp.Header.Get("Content-Type"), "application/json") {
 		return nil, errors.New("video connector rejected capability request")
 	}
 	data, err := io.ReadAll(io.LimitReader(resp.Body, 65537))
-	if err != nil || len(data) > 65536 { return nil, errors.New("invalid video connector response") }
+	if err != nil || len(data) > 65536 {
+		return nil, errors.New("invalid video connector response")
+	}
 	var envelope struct {
-		JSONRPC string `json:"jsonrpc"`
-		Result json.RawMessage `json:"result"`
-		Error json.RawMessage `json:"error"`
+		JSONRPC string          `json:"jsonrpc"`
+		Result  json.RawMessage `json:"result"`
+		Error   json.RawMessage `json:"error"`
 	}
 	if json.Unmarshal(data, &envelope) != nil || envelope.JSONRPC != "2.0" || len(envelope.Result) == 0 || len(envelope.Error) != 0 {
 		return nil, errors.New("invalid video connector RPC response")
