@@ -52,8 +52,8 @@ func New(cfg Config) (*Connector, error) {
 	transport := http.DefaultTransport.(*http.Transport).Clone()
 	transport.Proxy = nil
 	return &Connector{endpoint: cfg.Endpoint, token: token, client: &http.Client{
-		Timeout:   10 * time.Second,
-		Transport: transport,
+		Timeout:       10 * time.Second,
+		Transport:     transport,
 		CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse },
 	}}, nil
 }
