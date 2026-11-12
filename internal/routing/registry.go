@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/Ploos-AS/Ploos-AI-Gateway/internal/providers"
+	"github.com/Ploos-AS/Ploos-AI-Gateway/internal/images"
 )
 
 // Model defines a public alias and its fixed upstream model.
@@ -33,6 +34,8 @@ type ProviderConfig struct {
 type Config struct {
 	Providers []ProviderConfig `json:"providers"`
 	Models    []Model          `json:"models"`
+	ImageProviders []images.ProviderConfig `json:"image_providers,omitempty"`
+	ImageModels []images.ModelConfig `json:"image_models,omitempty"`
 }
 
 // Route is a resolved, fixed upstream destination.
