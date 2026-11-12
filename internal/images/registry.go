@@ -7,6 +7,9 @@ import (
 	"net/netip"
 	"net/url"
 	"os"
+	"net/http"
+	"encoding/json"
+	"time"
 )
 
 // ProviderConfig declares an image backend independent of chat providers.
@@ -15,6 +18,8 @@ type ProviderConfig struct {
 	Kind     string `json:"kind"`
 	Endpoint string `json:"endpoint"`
 	KeyEnv   string `json:"key_env,omitempty"`
+	WorkflowFile string `json:"workflow_file,omitempty"`
+	PromptNode string `json:"prompt_node,omitempty"`
 }
 
 // ModelConfig binds a public image alias to one upstream model.
@@ -29,7 +34,7 @@ type ModelConfig struct {
 // Route is a validated fixed destination.
 type Route struct {
 	UpstreamModel string
-	Generator     *Generator
+	Generator     ImageGenerator
 }
 
 // Registry never falls back to another provider.
@@ -39,13 +44,13 @@ type Registry struct {
 
 // NewRegistry validates explicitly configured image routes.
 func NewRegistry(providers []ProviderConfig, models []ModelConfig) (*Registry, error) {
-	backends := make(map[string]*Generator)
+	backends := make(map[string]ImageGenerator)
 	kinds := make(map[string]string)
 	for _, p := range providers {
 		if p.ID == "" || backends[p.ID] != nil {
 			return nil, errors.New("duplicate or empty image provider")
 		}
-		var g *Generator
+		var g ImageGenerator
 		var err error
 		switch p.Kind {
 		case "openai":
@@ -60,7 +65,16 @@ func NewRegistry(providers []ProviderConfig, models []ModelConfig) (*Registry, e
 			if err = validateComfyEndpoint(p.Endpoint); err != nil {
 				return nil, err
 			}
-			return nil, errors.New("comfyui requires a native workflow adapter")
+			if p.WorkflowFile == "" || p.PromptNode == "" {
+				return nil, errors.New("comfyui requires workflow_file and prompt_node")
+			}
+			workflow, readErr := os.ReadFile(p.WorkflowFile)
+			if readErr != nil || len(workflow) > 1<<20 || !json.Valid(workflow) {
+				return nil, errors.New("invalid comfyui workflow file")
+			}
+			transport := http.DefaultTransport.(*http.Transport).Clone()
+			transport.Proxy = nil
+			g = &ComfyGenerator{Endpoint: p.Endpoint, Workflow: workflow, PromptNode: p.PromptNode, Client: &http.Client{Timeout: 120 * time.Second, Transport: transport, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}}
 		default:
 			return nil, fmt.Errorf("unsupported image provider kind %q", p.Kind)
 		}
