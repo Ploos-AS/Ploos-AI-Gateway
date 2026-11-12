@@ -17,14 +17,14 @@ import (
 
 // ComfyGenerator executes a server-owned workflow with one prompt input.
 type ComfyGenerator struct {
-	Endpoint   string
-	Client     *http.Client
-	Workflow   json.RawMessage
-	PromptNode string
-	MaxDuration time.Duration
+	Endpoint      string
+	Client        *http.Client
+	Workflow      json.RawMessage
+	PromptNode    string
+	MaxDuration   time.Duration
 	MaxConcurrent int
-	mu sync.Mutex
-	active int
+	mu            sync.Mutex
+	active        int
 }
 
 // Generate implements the image generator contract using ComfyUI's queue/history/view APIs.
