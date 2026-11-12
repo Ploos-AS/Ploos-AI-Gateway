@@ -19,6 +19,11 @@ type ImageRoute struct {
 
 // WithImageGeneration adds an authenticated text-to-image endpoint.
 func WithImageGeneration(chat http.Handler, key string, route ImageRoute) http.Handler {
+	return WithImageRegistry(chat, key, func(id string) (ImageRoute, bool) { return route, id == route.Alias })
+}
+
+// WithImageRegistry resolves each image request against explicit model aliases.
+func WithImageRegistry(chat http.Handler, key string, resolve func(string) (ImageRoute, bool)) http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /v1/images/generations", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -32,7 +37,7 @@ func WithImageGeneration(chat http.Handler, key string, route ImageRoute) http.H
 			writeError(w, http.StatusUnauthorized, "invalid_api_key", "Invalid API key")
 			return
 		}
-		if route.Generator == nil || route.Alias == "" || route.UpstreamModel == "" {
+		if resolve == nil {
 			writeError(w, http.StatusServiceUnavailable, "image_provider_unavailable", "Image generation is not configured")
 			return
 		}
@@ -50,8 +55,13 @@ func WithImageGeneration(chat http.Handler, key string, route ImageRoute) http.H
 			writeError(w, http.StatusBadRequest, "invalid_request", "Invalid image generation request")
 			return
 		}
-		if input.Model != route.Alias {
+		route, found := resolve(input.Model)
+		if !found {
 			writeError(w, http.StatusBadRequest, "unknown_model", "Image model is not configured")
+			return
+		}
+		if route.Generator == nil || route.UpstreamModel == "" {
+			writeError(w, http.StatusServiceUnavailable, "image_provider_unavailable", "Image generation is not configured")
 			return
 		}
 		encoded, _ := json.Marshal(map[string]interface{}{"model": route.UpstreamModel, "prompt": input.Prompt, "n": 1})
