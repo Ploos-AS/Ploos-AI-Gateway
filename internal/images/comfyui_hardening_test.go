@@ -31,12 +31,12 @@ func TestComfyUIConcurrencyLimit(t *testing.T) {
 	}))
 	defer server.Close()
 	g := &ComfyGenerator{
-		Endpoint: server.URL + "/prompt",
-		Client: server.Client(),
-		Workflow: []byte(`{"6":{"inputs":{"text":"old"}}}`),
-		PromptNode: "6",
+		Endpoint:      server.URL + "/prompt",
+		Client:        server.Client(),
+		Workflow:      []byte(`{"6":{"inputs":{"text":"old"}}}`),
+		PromptNode:    "6",
 		MaxConcurrent: 1,
-		MaxDuration: 2 * time.Second,
+		MaxDuration:   2 * time.Second,
 	}
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -71,7 +71,7 @@ func TestComfyUITimeout(t *testing.T) {
 		Endpoint: server.URL + "/prompt",
 		Client: server.Client(),
 		Workflow: []byte(`{"6":{"inputs":{"text":"old"}}}`),
-		PromptNode: "6",
+		PromptNode:    "6",
 		MaxDuration: 50 * time.Millisecond,
 	}
 	_, _, err := g.Generate(context.Background(), []byte(`{"prompt":"test"}`))
