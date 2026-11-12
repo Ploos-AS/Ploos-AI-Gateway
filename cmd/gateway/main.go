@@ -45,6 +45,14 @@ func main() {
 			}
 			handler = api.WithSpeech(handler, os.Getenv("PLOOS_GATEWAY_API_KEY"), audioRegistry)
 		}
+		if len(cfg.TranscriptionProviders) > 0 || len(cfg.TranscriptionModels) > 0 {
+			transcriptionRegistry, err := audio.NewTranscriptionRegistry(cfg.TranscriptionProviders, cfg.TranscriptionModels)
+			if err != nil {
+				logger.Error("invalid transcription registry", "error", err)
+				os.Exit(1)
+			}
+			handler = api.WithTranscriptions(handler, os.Getenv("PLOOS_GATEWAY_API_KEY"), transcriptionRegistry)
+		}
 		if len(cfg.ImageProviders) > 0 || len(cfg.ImageModels) > 0 {
 			imageRegistry, err := images.NewRegistry(cfg.ImageProviders, cfg.ImageModels)
 			if err != nil {
