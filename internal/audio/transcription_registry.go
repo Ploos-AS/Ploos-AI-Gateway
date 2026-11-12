@@ -9,7 +9,7 @@ import (
 
 type TranscriptionRoute struct {
 	UpstreamModel string
-	Provider      *TranscriptionProvider
+	Provider *TranscriptionProvider
 }
 
 type TranscriptionRegistry struct {
