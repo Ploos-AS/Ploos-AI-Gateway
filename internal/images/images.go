@@ -15,6 +15,11 @@ import (
 const MaxRequestBytes int64 = 32 << 10
 const MaxResponseBytes int64 = 12 << 20
 
+// ImageGenerator is the common image generation contract.
+type ImageGenerator interface {
+	Generate(ctx context.Context, body []byte) (int, []byte, error)
+}
+
 // Generator forwards image requests to a fixed upstream.
 type Generator struct {
 	Endpoint string

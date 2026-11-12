@@ -14,7 +14,7 @@ import (
 type ImageRoute struct {
 	Alias         string
 	UpstreamModel string
-	Generator     *images.Generator
+	Generator     images.ImageGenerator
 }
 
 // WithImageGeneration adds an authenticated text-to-image endpoint.
