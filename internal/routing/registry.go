@@ -12,6 +12,7 @@ import (
 	"github.com/Ploos-AS/Ploos-AI-Gateway/internal/audio"
 	"github.com/Ploos-AS/Ploos-AI-Gateway/internal/images"
 	"github.com/Ploos-AS/Ploos-AI-Gateway/internal/providers"
+	"github.com/Ploos-AS/Ploos-AI-Gateway/internal/video"
 )
 
 // Model defines a public alias and its fixed upstream model.
@@ -41,6 +42,7 @@ type Config struct {
 	AudioModels            []audio.ModelConfig     `json:"audio_models,omitempty"`
 	TranscriptionProviders []audio.ProviderConfig  `json:"transcription_providers,omitempty"`
 	TranscriptionModels    []audio.ModelConfig     `json:"transcription_models,omitempty"`
+	VideoConnector         *video.Config            `json:"video_connector,omitempty"`
 }
 
 // Route is a resolved, fixed upstream destination.
