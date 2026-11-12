@@ -9,6 +9,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/Ploos-AS/Ploos-AI-Gateway/internal/audio"
 	"github.com/Ploos-AS/Ploos-AI-Gateway/internal/images"
 	"github.com/Ploos-AS/Ploos-AI-Gateway/internal/providers"
 )
@@ -36,6 +37,8 @@ type Config struct {
 	Models         []Model                 `json:"models"`
 	ImageProviders []images.ProviderConfig `json:"image_providers,omitempty"`
 	ImageModels    []images.ModelConfig    `json:"image_models,omitempty"`
+	AudioProviders []audio.ProviderConfig  `json:"audio_providers,omitempty"`
+	AudioModels    []audio.ModelConfig     `json:"audio_models,omitempty"`
 }
 
 // Route is a resolved, fixed upstream destination.
