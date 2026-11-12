@@ -71,7 +71,7 @@ func (g *ComfyGenerator) Generate(ctx context.Context, body []byte) (int, []byte
 					Images []struct {
 						Filename  string `json:"filename"`
 						Subfolder string `json:"subfolder"`
-						Type     string `json:"type"`
+						Type      string `json:"type"`
 					} `json:"images"`
 				} `json:"outputs"`
 			}
