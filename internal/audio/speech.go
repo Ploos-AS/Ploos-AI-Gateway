@@ -66,7 +66,7 @@ func NewClient(private bool) *http.Client {
 		transport.Proxy = nil
 	}
 	return &http.Client{
-		Timeout: 90 * time.Second,
+		Timeout:   90 * time.Second,
 		Transport: transport,
 		CheckRedirect: func(*http.Request, []*http.Request) error {
 			return http.ErrUseLastResponse
