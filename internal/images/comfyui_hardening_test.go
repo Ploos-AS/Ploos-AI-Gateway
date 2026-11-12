@@ -71,7 +71,7 @@ func TestComfyUITimeout(t *testing.T) {
 		Endpoint: server.URL + "/prompt",
 		Client: server.Client(),
 		Workflow: []byte(`{"6":{"inputs":{"text":"old"}}}`),
-		PromptNode:    "6",
+		PromptNode:  "6",
 		MaxDuration: 50 * time.Millisecond,
 	}
 	_, _, err := g.Generate(context.Background(), []byte(`{"prompt":"test"}`))
