@@ -7,23 +7,22 @@ import (
 	"net/netip"
 	"net/url"
 	"os"
-	"strings"
 )
 
 // ProviderConfig declares an image backend independent of chat providers.
 type ProviderConfig struct {
-	ID string `json:"id"`
-	Kind string `json:"kind"`
+	ID       string `json:"id"`
+	Kind     string `json:"kind"`
 	Endpoint string `json:"endpoint"`
-	KeyEnv string `json:"key_env,omitempty"`
+	KeyEnv   string `json:"key_env,omitempty"`
 }
 
 // ModelConfig binds a public image alias to one upstream model.
 type ModelConfig struct {
-	ID string `json:"id"`
-	Provider string `json:"provider"`
-	UpstreamID string `json:"upstream_model"`
-	Location string `json:"location"`
+	ID         string   `json:"id"`
+	Provider   string   `json:"provider"`
+	UpstreamID string   `json:"upstream_model"`
+	Location   string   `json:"location"`
 	Operations []string `json:"operations"`
 }
 
@@ -38,30 +37,32 @@ type Registry struct {
 	routes map[string]Route
 }
 
+// NewRegistry validates explicitly configured image routes.
 func NewRegistry(providers []ProviderConfig, models []ModelConfig) (*Registry, error) {
 	backends := make(map[string]*Generator)
 	kinds := make(map[string]string)
 	for _, p := range providers {
 		if p.ID == "" || backends[p.ID] != nil {
-			return nil, fmt.Errorf("duplicate or empty image provider")
+			return nil, errors.New("duplicate or empty image provider")
 		}
 		var g *Generator
 		var err error
 		switch p.Kind {
 		case "openai":
 			if p.Endpoint != "https://api.openai.com/v1/images/generations" || p.KeyEnv != "OPENAI_API_KEY" {
-			return nil, errors.New("invalid openai image provider configuration")
-		}
+				return nil, errors.New("invalid openai image provider configuration")
+			}
 			g, err = NewOpenAI(os.Getenv(p.KeyEnv))
 		case "comfyui":
 			if p.KeyEnv != "" {
-			return nil, errors.New("comfyui does not support key_env")
-		}
-			if err = validateComfyEndpoint(p.Endpoint); err == nil {
-				return nil, errors.New("comfyui requires a workflow adapter; direct OpenAI-style requests are not supported")
+				return nil, errors.New("comfyui does not support key_env")
 			}
+			if err = validateComfyEndpoint(p.Endpoint); err != nil {
+				return nil, err
+			}
+			return nil, errors.New("comfyui requires a native workflow adapter")
 		default:
-			return nil, fmt.Errorf("unsupported image provider kind")
+			return nil, fmt.Errorf("unsupported image provider kind %q", p.Kind)
 		}
 		if err != nil {
 			return nil, err
@@ -92,10 +93,11 @@ func NewRegistry(providers []ProviderConfig, models []ModelConfig) (*Registry, e
 	return reg, nil
 }
 
+// Resolve looks up an explicitly configured image alias.
 func (r *Registry) Resolve(id string) (Route, bool) {
 	if r == nil {
-			return Route{}, false
-		}
+		return Route{}, false
+	}
 	route, ok := r.routes[id]
 	return route, ok
 }
@@ -103,21 +105,18 @@ func (r *Registry) Resolve(id string) (Route, bool) {
 func validateComfyEndpoint(endpoint string) error {
 	u, err := url.Parse(endpoint)
 	if err != nil || u.User != nil || u.RawQuery != "" || u.Fragment != "" || u.Path != "/prompt" || (u.Scheme != "http" && u.Scheme != "https") {
-			return errors.New("invalid comfyui endpoint")
-		}
+		return errors.New("invalid comfyui endpoint")
+	}
 	host, port, err := net.SplitHostPort(u.Host)
 	if err != nil || port == "" {
-			return errors.New("comfyui requires IP and port")
-		}
+		return errors.New("comfyui requires IP and port")
+	}
 	ip, err := netip.ParseAddr(host)
 	if err != nil || ip.Zone() != "" || ip.Is4In6() || (!ip.IsPrivate() && !ip.IsLoopback()) {
-			return errors.New("comfyui requires private IP literal")
-		}
+		return errors.New("comfyui requires private IP literal")
+	}
 	if _, err = net.LookupPort("tcp", port); err != nil {
-			return errors.New("invalid comfyui port")
-		}
-	if strings.Contains(endpoint, "@") {
-			return errors.New("userinfo forbidden")
-		}
+		return errors.New("invalid comfyui port")
+	}
 	return nil
 }
